@@ -3,6 +3,7 @@ package game;
 import Input.Input;
 import core.Size;
 import display.Display;
+import game.settings.GameSettings;
 import game.state.GameState;
 import game.state.State;
 
@@ -13,11 +14,13 @@ public class Game {
     private Display display;
     private Input input;
     private State state;
+    private GameSettings settings;
 
     public Game(int width, int height) {
         input = new Input();
         display = new Display(width, height, input);
         state = new GameState(new Size(width, height), input);
+        settings = new GameSettings(false);
     }
 
     public void update() {
@@ -25,6 +28,6 @@ public class Game {
     }
 
     public void render() {
-        display.render(state);
+        display.render(state, settings.isDebugMode());
     }
 }

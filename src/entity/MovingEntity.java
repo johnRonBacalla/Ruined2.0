@@ -1,8 +1,8 @@
 package entity;
 
 import controller.Controller;
-import core.Direction;
-import core.Motion;
+import core.*;
+import entity.action.Action;
 import entity.effect.Effect;
 import game.state.State;
 import gfx.AnimationManager;
@@ -10,6 +10,7 @@ import gfx.SpriteLib;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public abstract class MovingEntity extends GameObject{
 
@@ -18,7 +19,11 @@ public abstract class MovingEntity extends GameObject{
     protected Motion motion;
     protected AnimationManager animationManager;
     protected Direction direction;
+    protected int prevDirection;
     protected List<Effect> effects;
+    protected Optional<Action> action;
+
+    protected Size collisionBoxSize;
 
     public MovingEntity(Controller controller, SpriteLib spriteLib) {
         super();
@@ -27,14 +32,18 @@ public abstract class MovingEntity extends GameObject{
         this.direction = Direction.RIGHT;
         this.animationManager = new AnimationManager(spriteLib.getUnit("wizard"));
         effects = new ArrayList<>();
+        action = Optional.empty();
+        this.collisionBoxSize = new Size(35, 32);
     }
 
     @Override
     public void update(State state) {
-        motion.update(controller);
+        handleAction(state);
+        handleMotion();
         animationManager.update(direction);
         effects.forEach(effect -> effect.update(state, this));
 
+        handleCollisions(state);
         manageDirection();
         changeAnimation();
 
@@ -43,12 +52,41 @@ public abstract class MovingEntity extends GameObject{
         cleanUp();
     }
 
+    private void handleCollisions(State state) {
+        state.getCollidingGameObjects(this).forEach(this::handleCollision);
+    }
+
+    protected abstract void handleCollision(GameObject other);
+
+    private void handleMotion() {
+        if(!action.isPresent()){
+            motion.update(controller);
+        } else {
+            motion.stop(true, true);
+        }
+    }
+
+    private void handleAction(State state) {
+        if(action.isPresent()){
+            action.get().update(state, this);
+        }
+    }
+
     private void cleanUp() {
-        List.copyOf(effects).stream().filter(Effect::shouldDelete).forEach(effects::remove);
+        List.copyOf(effects).stream()
+                .filter(Effect::shouldDelete)
+                .forEach(effects::remove);
+
+        if(action.isPresent() && action.get().isDone()){
+            action = Optional.empty();
+        }
     }
 
     private void changeAnimation() {
-        if(motion.isMoving()) {
+
+        if(action.isPresent()){
+            animationManager.playAnimation(action.get().getAnimationName());
+        } else if(motion.isMoving()) {
             animationManager.playAnimation("walk");
         } else {
             animationManager.playAnimation("stand");
@@ -57,8 +95,33 @@ public abstract class MovingEntity extends GameObject{
 
     private void manageDirection() {
         if(motion.isMoving()) {
-            this.direction = Direction.fromMotion(motion);
+            if(Direction.fromMotion(motion, prevDirection) == Direction.RIGHT){
+                prevDirection = 0;
+            } else {
+                prevDirection = 1;
+            }
+            this.direction = Direction.fromMotion(motion, prevDirection);
         }
+    }
+
+    @Override
+    public boolean collidesWith(GameObject other) {
+        return getCollisionBox().collidesWith(other.getCollisionBox());
+    }
+
+    @Override
+    public CollisionBox getCollisionBox() {
+        Position positionWithMotion = Position.copyOf(position);
+        positionWithMotion.apply(motion);
+
+        return new CollisionBox(
+            new Rectangle(
+                    positionWithMotion.intX() - 10,
+                    positionWithMotion.intY(),
+                collisionBoxSize.getWidth(),
+                collisionBoxSize.getHeight()
+            )
+        );
     }
 
     @Override
@@ -72,5 +135,33 @@ public abstract class MovingEntity extends GameObject{
 
     public void multiplySpeed(double multiplier) {
          motion.multiply(multiplier);
+    }
+
+    public void perform(Action action) {
+        this.action = Optional.of(action);
+    }
+
+    public void addEffect(Effect effect) {
+        effects.add(effect);
+    }
+
+    protected void clearEffects() {
+        effects.clear();
+    }
+
+    protected boolean willCollideX(GameObject other) {
+        CollisionBox otherBox = other.getCollisionBox();
+        Position positionWithXApplied = Position.copyOf(position);
+        positionWithXApplied.applyX(motion);
+
+        return  CollisionBox.of(positionWithXApplied, collisionBoxSize).collidesWith(otherBox);
+    }
+
+    protected boolean willCollideY(GameObject other) {
+        CollisionBox otherBox = other.getCollisionBox();
+        Position positionWithYApplied = Position.copyOf(position);
+        positionWithYApplied.applyY(motion);
+
+        return  CollisionBox.of(positionWithYApplied, collisionBoxSize).collidesWith(otherBox);
     }
 }

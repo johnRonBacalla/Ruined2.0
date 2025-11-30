@@ -9,13 +9,17 @@ import gfx.SpriteLib;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import Input.Input;
 import map.GameMap;
+import ui.UiContainer;
 
 public abstract class   State {
 
     protected GameMap gameMap;
     protected List<GameObject> gameObjects;
+    protected List<UiContainer> uiContainers;
     protected SpriteLib spriteLib;
     protected Input input;
     protected Camera camera;
@@ -25,6 +29,7 @@ public abstract class   State {
         this.input = input;
         spriteLib = new SpriteLib();
         gameObjects = new ArrayList<>();
+        uiContainers  = new ArrayList<>();
         camera = new Camera(windowSize);
         time = new Time();
     }
@@ -32,6 +37,7 @@ public abstract class   State {
     public void update() {
         sortObjectsByPosition();
         gameObjects.forEach(gameObject -> gameObject.update(this));
+        uiContainers.forEach(uiContainer -> uiContainer.update(this));
         camera.update(this);
     }
 
@@ -57,5 +63,16 @@ public abstract class   State {
 
     public Position getRandomPosition() {
         return gameMap.getRandomPosition();
+    }
+
+    public List<GameObject> getCollidingGameObjects(GameObject gameObject) {
+        return gameObjects.stream()
+                .filter(other -> other.collidesWith(gameObject))
+                .collect(Collectors.toList());
+
+    }
+
+    public List<UiContainer> getUiContainers() {
+        return uiContainers;
     }
 }

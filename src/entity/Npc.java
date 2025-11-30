@@ -21,4 +21,11 @@ public class Npc extends MovingEntity {
         super.update(state);
         manager.update(state, this);
     }
+
+    @Override
+    protected void handleCollision(GameObject other) {
+        if(other instanceof Player){
+            motion.stop(willCollideX(other), willCollideY(other));
+        }
+    }
 }

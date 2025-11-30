@@ -2,7 +2,6 @@ package gfx;
 
 import core.Direction;
 import game.Game;
-
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
@@ -10,6 +9,7 @@ public class AnimationManager {
 
     private SpriteSet spriteSet;
     private BufferedImage currentAnimationSheet;
+    private String currentAnimationName;
     private int currentFrameTime;
     private int updatesPerFrame;
     private int frameIndex;
@@ -17,10 +17,11 @@ public class AnimationManager {
 
     public AnimationManager(SpriteSet spriteSet) {
         this.spriteSet = spriteSet;
-        this.updatesPerFrame = 6;
+        this.updatesPerFrame = 6; 
         this.frameIndex = 0;
         this.currentFrameTime = 0;
         this.directionIndex = 0;
+        currentAnimationName = "";
         playAnimation("stand");
     }
 
@@ -48,6 +49,10 @@ public class AnimationManager {
     }
 
     public void playAnimation(String name) {
-        this.currentAnimationSheet = (BufferedImage) spriteSet.get(name);
+        if(!name.equals(currentAnimationName)){
+            this.currentAnimationSheet = (BufferedImage) spriteSet.get(name);
+            currentAnimationName = name;
+            frameIndex = 0;
+        }
     }
 }
