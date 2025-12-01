@@ -27,7 +27,7 @@ public class GameState extends State{
         container.setBackgroundColor(Color.GRAY);
         container.addUiComponent(new HorizontalContainer());
         container.addUiComponent(new HorizontalContainer());
-        container.addUiComponent(new UiText("Hello world"));
+        container.addUiComponent(new HorizontalContainer());
         uiContainers.add(container);
     }
 
@@ -35,7 +35,7 @@ public class GameState extends State{
         Player player = new Player(new PlayerController(input), spriteLib);
         gameObjects.add(player);
         camera.focusOn(player);
-        initializeNpcs(400);
+        initializeNpcs(500);
     }
 
     private void initializeNpcs(int noOfNpcs) {
